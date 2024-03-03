@@ -26,7 +26,7 @@ public class ServerMain {
             System.out.println("[INFO] Server" + serverName + " bound.");
             // Spin until terminated
             // server.IRCServer.start()
-        } catch (RemoteException | MalformedURLException | NoSuchPaddingException | NoSuchAlgorithmException e) {
+        } catch (RemoteException | MalformedURLException e) {
             e.printStackTrace();
         }
     }

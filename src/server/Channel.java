@@ -1,29 +1,38 @@
 package server;
 
+import client.IRCClientInterface;
+
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Channel {
     private String name;
-    private ArrayList<String> clients;
+    private HashMap<String, IRCClientInterface> clients;
 
     public Channel(String channelName) {
         name = channelName;
-        clients = new ArrayList<>();
+        clients = new HashMap<>();
     }
 
     public String getName() {
         return name;
     }
 
-    public ArrayList<String> getClients() {
+    public HashMap<String, IRCClientInterface> getClients() {
         return clients;
     }
 
-    public void addClient(String s) {
-        clients.add(s);
+    public sendMessage(String senderUsername, String message) {
+        for (String username : clients.keySet())
+            ; //clients.get(username).sendMessage();
+
     }
 
-    public void removeClient(String s) {
-        clients.remove(s);
+    public void addClient(String username, IRCClientInterface clientInterface) {
+        clients.put(username, clientInterface);
+    }
+
+    public void removeClient(String username) {
+        clients.remove(username);
     }
 }
