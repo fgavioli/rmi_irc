@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 public class IRCServer extends UnicastRemoteObject implements IRCServerInterface {
     private final String name;
@@ -24,6 +25,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     public IRCServer(String serverName) throws RemoteException {
         super();
         this.name = serverName;
+        scheduler.schedule(new DisconnectDetector(this), 20, TimeUnit.SECONDS);
     }
 
     @Override
@@ -38,6 +40,10 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
             if (u.equals(username))
                 return -1;
         }
+        for (Channel c : channels)
+            if (c.getClients().containsKey(username))
+                return -1;
+
 
         try {
             signatureVerifier.addSignature(username, publicKey);
@@ -79,7 +85,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         greeting.append("Welcome to the ").append(this.name).append(" IRC Server!\n");
         greeting.append("Available channels: \n");
         for (Channel c : channels)
-            greeting.append("    #").append(c.getName()).append("\n");
+            greeting.append("    #").append(c.getName()).append("\t").append(c.getClients().keySet().size()).append(" users\n");
         return greeting.toString();
     }
 
@@ -113,7 +119,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     }
 
     @Override
-    public int joinPrivateChat(String username, String targetUsername, byte[] nonce, byte[] signedFingerprint) throws SignatureException {
+    public int joinPrivateChat(String username, String targetUsername, byte[] nonce, byte[] signedFingerprint) {
         // Verify signature
         if (signatureVerifier.verifySignature(username, (username + targetUsername).getBytes(), nonce, signedFingerprint)) {
             // joinProcedure
@@ -136,7 +142,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         for (Channel c : channels)
             if (c.getName().equals(channelName))
                 return -1;
-        Channel c = new Channel(channelName, signatureVerifier);
+        Channel c = new Channel(channelName);
         channels.add(c);
         return 0;
     }

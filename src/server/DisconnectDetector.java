@@ -2,10 +2,10 @@ package server;
 
 import java.rmi.RemoteException;
 
-public class AFKDetector implements Runnable {
+public class DisconnectDetector implements Runnable {
     private IRCServer server;
 
-    public AFKDetector(IRCServer server) {
+    public DisconnectDetector(IRCServer server) {
         this.server = server;
     }
     @Override

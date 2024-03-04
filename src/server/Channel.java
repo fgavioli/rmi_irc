@@ -2,7 +2,6 @@ package server;
 
 import client.IRCClientInterface;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 
 public class Channel {
@@ -22,10 +21,9 @@ public class Channel {
         return clients;
     }
 
-    public sendMessage(String senderUsername, String message) {
+    public void sendMessage(String senderUsername, String message) {
         for (String username : clients.keySet())
             ; //clients.get(username).sendMessage();
-
     }
 
     public void addClient(String username, IRCClientInterface clientInterface) {
