@@ -34,7 +34,8 @@ public class ClientSession {
             return;
         }
         System.out.println(server.getGreeting());
-        lobbyMenuLoop();
+        while(true)
+            lobbyMenuLoop();
     }
 
 
