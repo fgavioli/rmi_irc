@@ -4,7 +4,7 @@ import client.IRCClientInterface;
 
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class Channel {
@@ -25,30 +25,30 @@ public class Channel {
     }
 
     public void sendMessage(String senderUsername, String message) {
-        ArrayList<String> usersRemaining = new ArrayList<>(clients.keySet());
+        Vector<String> usersRemaining = new Vector<>(clients.keySet());
+        usersRemaining.remove(senderUsername);
 
-        // TODO: test this
         while (!usersRemaining.isEmpty()) {
-            String lastUser = null;
+            ArrayList<String> toRemove = new ArrayList<>();
             try {
-                for (String username : clients.keySet()) {
-                    if (!username.equals(senderUsername) && usersRemaining.contains(username)) {
-                        lastUser = username;
-                        clients.get(username).sendMessage(senderUsername, message);
-                        usersRemaining.remove(username);
-                    }
+                for (String username : usersRemaining) {
+                    toRemove.add(username);
+                    clients.get(username).sendMessage(senderUsername, message);
                 }
-            } catch (RemoteException e) {
-                usersRemaining.remove(lastUser);
-            }
+            } catch (RemoteException ignored) {}
+            usersRemaining.removeAll(toRemove);
         }
     }
 
     public void addClient(String username, IRCClientInterface clientInterface) {
+        sendMessage("*server*", "User " + username + " joined the channel.");
         clients.put(username, clientInterface);
     }
 
-    public void removeClient(String username) {
+    public IRCClientInterface removeClient(String username) {
+        IRCClientInterface ret = clients.get(username);
         clients.remove(username);
+        sendMessage("*server*", "User " + username + " left the channel.");
+        return ret;
     }
 }
