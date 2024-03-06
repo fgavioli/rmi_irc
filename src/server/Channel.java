@@ -25,8 +25,23 @@ public class Channel {
     }
 
     public void sendMessage(String senderUsername, String message) {
-        for (String username : clients.keySet())
-            ; //clients.get(username).sendMessage();
+        ArrayList<String> usersRemaining = new ArrayList<>(clients.keySet());
+
+        // TODO: test this
+        while (!usersRemaining.isEmpty()) {
+            String lastUser = null;
+            try {
+                for (String username : clients.keySet()) {
+                    if (!username.equals(senderUsername) && usersRemaining.contains(username)) {
+                        lastUser = username;
+                        clients.get(username).sendMessage(senderUsername, message);
+                        usersRemaining.remove(username);
+                    }
+                }
+            } catch (RemoteException e) {
+                usersRemaining.remove(lastUser);
+            }
+        }
     }
 
     public void addClient(String username, IRCClientInterface clientInterface) {
