@@ -23,6 +23,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     private SignatureVerifier signatureVerifier = new SignatureVerifier();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
+
     public IRCServer(String serverName) throws RemoteException {
         super();
         this.name = serverName;
@@ -31,7 +32,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
 
     @Override
     public int connect(String username, PublicKey publicKey, byte[] signedFingerprint) throws RemoteException {
-        System.out.println("Received connection request from username: " + username + ".");
+        System.out.println("[INFO] Received connection request from username: " + username + ".");
 
         if (username == null || username.isEmpty())
             return -1;
@@ -44,30 +45,42 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
                 return -1;
 
         try {
-            signatureVerifier.addSignature(username, publicKey);
-            if(!signatureVerifier.verifySignature(username, username.getBytes(), null, signedFingerprint)) {
+            int seed = signatureVerifier.addSignature(username, publicKey);
+            if(!signatureVerifier.verifySignatureWithoutNonce(username, username.getBytes(), signedFingerprint)) {
                 signatureVerifier.removeSignature(username);
-                System.err.println("[INFO] invalid signature detected, unable to connect client " + username);
+                System.err.println("[INFO] Signature sanity check failed, unable to connect client" + username + ".");
                 return -1;
             }
 
             // Add client to lobby
             IRCClientInterface client = (IRCClientInterface) Naming.lookup(username);
             clientsInLobby.put(username, client);
+            return seed;
         } catch (NotBoundException | MalformedURLException | RemoteException | NoSuchAlgorithmException |
                  InvalidKeyException e) {
             signatureVerifier.removeSignature(username);
             e.printStackTrace();
-            return -1;
+            return 0;
+        }
+    }
+
+    public int disconnect(String username, byte[] signedFingerprint) throws RemoteException {
+        if (signatureVerifier.verifySignature(username, username.getBytes(), signedFingerprint)) {
+            removeClient(username);
         }
         return 0;
     }
 
-    public int disconnect(String username, byte[] nonce, byte[] signedFingerprint) throws RemoteException {
-        if (signatureVerifier.verifySignature(username, username.getBytes(), nonce, signedFingerprint)) {
-            removeClient(username);
+    @Override
+    public void sendMessage(String username, String channel, String message, byte[] signedFingerprint) throws RemoteException {
+        System.out.println("[INFO] " + username + " sent message \"" + message + "\"" + " to channel \"" + channel + "\".");
+        if (signatureVerifier.verifySignature(username, message.getBytes(), signedFingerprint)) {
+            for (Channel c : channels)
+                if (c.getName().equals(channel))
+                    c.sendMessage(username, message);
+        } else {
+            System.err.println("SIGNATURE VERIFICATION FAILED DURING SENDMESSAGE");
         }
-        return 0;
     }
 
     public void removeClient(String username)  {
@@ -93,33 +106,47 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     }
 
     @Override
-    public ArrayList<String> getChannels() throws RemoteException {
+    public ArrayList<String> getChannelNames() throws RemoteException {
         ArrayList<String> ret = new ArrayList<>();
         for (Channel c : channels)
             ret.add(c.getName());
         return ret;
     }
 
-    @Override
-    public int joinChannel(String username, String channelName, byte[] nonce, byte[] signedFingerprint) {
-        if (signatureVerifier.verifySignature(username, (username + channelName).getBytes(), nonce, signedFingerprint)) {
-            for (server.Channel c : channels)
-                if (c.getName().equals(channelName)) {
-                    c.addClient(username, clientsInLobby.get(username));
-                    clientsInLobby.remove(username);
-                    break;
-                }
-            return 0;
-        } else {
-            removeClient(username);
-            return -1;
-        }
+    public Vector<Channel> getChannels() {
+        return channels;
     }
 
     @Override
-    public int joinPrivateChat(String username, String targetUsername, byte[] nonce, byte[] signedFingerprint) {
+    public int joinChannel(String username, String channelName, byte[] signedFingerprint) {
+        System.out.println("[INFO] Received JoinChannel(" + channelName + ") request from " + username + ".");
+        if (signatureVerifier.verifySignature(username, (username + channelName).getBytes(), signedFingerprint)) {
+            for (Channel c : channels)
+                if (c.getName().equals(channelName)) {
+                    c.addClient(username, clientsInLobby.get(username));
+                    clientsInLobby.remove(username);
+                    return 0;
+                }
+            System.err.println("Channel " + channelName + " does not exist.");
+        }
+        return -1;
+    }
+    public int leaveChannel(String username, String channelName, byte[] signedFingerprint) {
+        if (signatureVerifier.verifySignature(username, (username+channelName).getBytes(), signedFingerprint)) {
+            for (Channel c : channels)
+                if (c.getName().equals(channelName)) {
+                    IRCClientInterface client = c.removeClient(username);
+                    clientsInLobby.put(username, client);
+                    return 0;
+                }
+        }
+        return -1;
+    }
+
+    @Override
+    public int joinPrivateChat(String username, String targetUsername, byte[] signedFingerprint) {
         // Verify signature
-        if (signatureVerifier.verifySignature(username, (username + targetUsername).getBytes(), nonce, signedFingerprint)) {
+        if (signatureVerifier.verifySignature(username, (username + targetUsername).getBytes(), signedFingerprint)) {
             // joinProcedure
             // add client to channel
             // remove client from lobby
@@ -145,14 +172,11 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         return 0;
     }
 
-    /**
-     *
-     * @return A list containing all clients inside the lobby and public channels
-     */
+
     public HashMap<String, IRCClientInterface> getClientsInLobby() {
         HashMap<String, IRCClientInterface> clientList = new HashMap<>(clientsInLobby);
-        for (Channel c : channels)
-            clientList.putAll(c.getClients());
+//        for (Channel c : channels)
+//            clientList.putAll(c.getClients());
         return clientList;
     }
 }

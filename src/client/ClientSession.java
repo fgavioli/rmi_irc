@@ -28,11 +28,12 @@ public class ClientSession {
     public void start(String serverName) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException, RemoteException, MalformedURLException, NotBoundException {
         // Lookup remote server object
         server = (IRCServerInterface) Naming.lookup(serverName);
-        int ret = server.connect(client.getUsername(), sm.getPublicKey(), sm.sign(client.getUsername().getBytes()));
-        if (ret != 0) {
-            System.out.println("Connection error.");
+        int seed = server.connect(client.getUsername(), sm.getPublicKey(), sm.sign(client.getUsername().getBytes()));
+        if (seed == 0) {
+            System.err.println("Connection error.");
             return;
         }
+        sm.setSeed(seed);
         System.out.println(server.getGreeting());
         while(true)
             lobbyMenuLoop();
@@ -40,7 +41,7 @@ public class ClientSession {
 
 
     private void printMenu() {
-        System.out.println("Choose a service:");
+        System.out.println("\nChoose a service:");
         System.out.println("\t1. List channels");
         System.out.println("\t2. List users");
         System.out.println("\t3. Join channel");
@@ -53,7 +54,7 @@ public class ClientSession {
         String option = stdin.nextLine();
         switch (option) {
             case "1":
-                ArrayList<String> channels = server.getChannels();
+                ArrayList<String> channels = server.getChannelNames();
                 System.out.println("Available channels:");
                 for (String c : channels)
                     System.out.println("\t#" + c);
@@ -70,18 +71,24 @@ public class ClientSession {
                 while(channelName.startsWith("#"))
                     channelName = channelName.substring(1, channelName.length()-1);
                 if (!channelName.equals("q")) {
-                    byte[] nonce = new byte[0];
-                    byte[] signedFingerprint = sm.signWithNonce((client.getUsername() + channelName).getBytes(), nonce);
-                    server.joinChannel(client.getUsername(), channelName, nonce, signedFingerprint);
+                    byte[] signedFingerprint = sm.signWithNonce((client.getUsername() + channelName).getBytes());
+                    int ret = server.joinChannel(client.getUsername(), channelName, signedFingerprint);
+                    if (ret == 0)
+                        chatLoop(channelName);
+                    else {
+                        System.err.println("Unable to join channel " + channelName + ".");
+                    }
+                } else {
+                    server.disconnect(client.getUsername(), sm.sign(client.getUsername().getBytes()));
+                    System.exit(0);
                 }
                 break;
             case "4":
                 System.out.print("Type the user you want to start a private chat with or q to exit [q]:");
                 String targetUsername = stdin.nextLine();
                 if (!targetUsername.equals("q")) {
-                    byte[] nonce = new byte[0];
-                    byte[] signedFingerprint = sm.signWithNonce((client.getUsername() + targetUsername).getBytes(), nonce);
-                    server.joinPrivateChat(client.getUsername(), targetUsername, nonce, signedFingerprint);
+                    byte[] signedFingerprint = sm.signWithNonce((client.getUsername() + targetUsername).getBytes());
+                    server.joinPrivateChat(client.getUsername(), targetUsername, signedFingerprint);
                 }
                 break;
             default:

@@ -3,11 +3,13 @@ package client;
 import java.nio.ByteBuffer;
 import java.security.*;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Random;
 
 public class SignatureManager {
     private Signature signature;
     private KeyPair keys;
+    private Random randomGenerator;
 
     public SignatureManager() throws NoSuchAlgorithmException, InvalidKeyException {
         // generate keypair and initialize signature object
@@ -23,9 +25,9 @@ public class SignatureManager {
         return signature.sign();
     }
 
-    public byte[] signWithNonce(byte[] message, byte[] nonce) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException {
-        nonce = new byte[8];
-        new Random().nextBytes(nonce);
+    public byte[] signWithNonce(byte[] message) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException {
+        byte[] nonce = new byte[8];
+        randomGenerator.nextBytes(nonce);
         byte[] fullMessage = new byte[message.length + nonce.length];
         ByteBuffer bb = ByteBuffer.wrap(fullMessage);
         bb.put(message);
@@ -35,5 +37,9 @@ public class SignatureManager {
 
     public PublicKey getPublicKey() {
         return keys.getPublic();
+    }
+
+    public void setSeed(int seed) {
+        randomGenerator = new Random(seed);
     }
 }

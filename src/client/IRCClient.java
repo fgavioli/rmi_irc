@@ -2,14 +2,15 @@ package client;
 
 import java.io.Serializable;
 import java.rmi.RemoteException;
+import java.rmi.server.UnicastRemoteObject;
 import java.security.*;
 
-public class IRCClient implements IRCClientInterface, Serializable {
+public class IRCClient extends UnicastRemoteObject implements IRCClientInterface {
     private final String username;
 
-    public IRCClient(String username) throws NoSuchAlgorithmException, InvalidKeyException {
+    public IRCClient(String username) throws RemoteException {
+        super();
         this.username = username;
-
     }
 
 
