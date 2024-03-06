@@ -96,4 +96,16 @@ public class ClientSession {
         }
 
     }
+
+    private void chatLoop(String channel) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException, RemoteException {
+        System.out.println("Joined channel " + channel + ". Write a message, press enter to send. Send \":q\" to quit.");
+        // read stdin
+        Scanner scanner = new Scanner(System.in);
+        String msg = scanner.nextLine();
+        while(!msg.equals(":q")) {
+            server.sendMessage(client.getUsername(), channel, msg, sm.signWithNonce(msg.getBytes()));
+            msg = scanner.nextLine();
+        }
+        server.leaveChannel(client.getUsername(), channel, sm.signWithNonce((client.getUsername() + channel).getBytes()));
+    }
 }
