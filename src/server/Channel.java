@@ -2,22 +2,25 @@ package server;
 
 import client.IRCClientInterface;
 
+import java.rmi.RemoteException;
+import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Channel {
     private String name;
-    private HashMap<String, IRCClientInterface> clients;
+    private ConcurrentHashMap<String, IRCClientInterface> clients;
 
     public Channel(String channelName) {
         name = channelName;
-        clients = new HashMap<>();
+        clients = new ConcurrentHashMap<>();
     }
 
     public String getName() {
         return name;
     }
 
-    public HashMap<String, IRCClientInterface> getClients() {
+    public ConcurrentHashMap<String, IRCClientInterface> getClients() {
         return clients;
     }
 

@@ -3,7 +3,6 @@ package server;
 import client.IRCClientInterface;
 
 import java.net.MalformedURLException;
-import java.nio.ByteBuffer;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
@@ -11,14 +10,16 @@ import java.rmi.server.UnicastRemoteObject;
 import java.security.*;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Vector;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
 
 public class IRCServer extends UnicastRemoteObject implements IRCServerInterface {
     private final String name;
-    private ArrayList<Channel> channels = new ArrayList<>();
-    private HashMap<String, IRCClientInterface> clientsInLobby = new HashMap<>();
+    private Vector<Channel> channels = new Vector<>();
+    private ConcurrentHashMap<String, IRCClientInterface> clientsInLobby = new ConcurrentHashMap<>();
     private SignatureVerifier signatureVerifier = new SignatureVerifier();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
 
@@ -36,14 +37,11 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
             return -1;
 
         // check if the same username is already connected
-        for (String u : clientsInLobby.keySet()) {
-            if (u.equals(username))
-                return -1;
-        }
+        if (clientsInLobby.containsKey(username))
+            return -1;
         for (Channel c : channels)
             if (c.getClients().containsKey(username))
                 return -1;
-
 
         try {
             signatureVerifier.addSignature(username, publicKey);

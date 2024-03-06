@@ -1,6 +1,7 @@
 package client;
 
 import java.io.Serializable;
+import java.rmi.RemoteException;
 import java.security.*;
 
 public class IRCClient implements IRCClientInterface, Serializable {
@@ -11,8 +12,15 @@ public class IRCClient implements IRCClientInterface, Serializable {
 
     }
 
+
+    @Override
+    public void sendMessage(String senderUsername, String message) throws RemoteException {
+        System.out.println(senderUsername + " > " + message);
+    }
+
     @Override
     public String getUsername() {
         return username;
     }
+
 }
