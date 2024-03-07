@@ -88,7 +88,19 @@ public class ClientSession {
                 String targetUsername = stdin.nextLine();
                 if (!targetUsername.equals("q")) {
                     byte[] signedFingerprint = sm.signWithNonce((client.getUsername() + targetUsername).getBytes());
-                    server.joinPrivateChat(client.getUsername(), targetUsername, signedFingerprint);
+                    int ret = server.joinPrivateChat(client.getUsername(), targetUsername, signedFingerprint);
+                    switch (ret) {
+                        case 0:
+                            chatLoop("private");
+                            break;
+                        case -1:
+                            System.out.println("Unable to start private chat with " + targetUsername);
+                            break;
+                        case -2:
+                            break;
+                        case -3:
+
+                    }
                 }
                 break;
             default:

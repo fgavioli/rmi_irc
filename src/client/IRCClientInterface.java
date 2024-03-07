@@ -7,4 +7,5 @@ import java.security.PublicKey;
 public interface IRCClientInterface extends Remote {
     String getUsername() throws RemoteException;
     void sendMessage(String senderUsername, String message) throws RemoteException;
+    boolean requestPrivateChat(String username) throws RemoteException;
 }

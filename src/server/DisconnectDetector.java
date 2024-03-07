@@ -2,13 +2,8 @@ package server;
 
 import client.IRCClientInterface;
 
-import java.lang.reflect.Array;
-import java.rmi.Remote;
 import java.rmi.RemoteException;
 import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Objects;
-import java.util.Vector;
 import java.util.concurrent.ConcurrentHashMap;
 
 public class DisconnectDetector implements Runnable {

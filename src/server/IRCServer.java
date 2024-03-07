@@ -22,6 +22,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     private ConcurrentHashMap<String, IRCClientInterface> clientsInLobby = new ConcurrentHashMap<>();
     private SignatureVerifier signatureVerifier = new SignatureVerifier();
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
+    private Vector<Channel> privateChats = new Vector<>();
 
 
     public IRCServer(String serverName) throws RemoteException {
@@ -147,15 +148,25 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     public int joinPrivateChat(String username, String targetUsername, byte[] signedFingerprint) {
         // Verify signature
         if (signatureVerifier.verifySignature(username, (username + targetUsername).getBytes(), signedFingerprint)) {
-            // joinProcedure
-            // add client to channel
-            // remove client from lobby
-            return 0;
+            if (!clientsInLobby.containsKey(targetUsername))
+                return -1; // unable to connect to client
+            try {
+                if (!clientsInLobby.get(targetUsername).requestPrivateChat(username)) {
+                    // success
+                    Channel c = new Channel("Private Chat");
+                    c.addClient(username, clientsInLobby.get(username));
+                    c.addClient(targetUsername, clientsInLobby.get(targetUsername));
+                    clientsInLobby.remove(username);
+                    clientsInLobby.remove(targetUsername);
+                    return 0; // success
+                } else {
+                    return -2; // client refused private chat
+                }
+            } catch (RemoteException e) {
+                return -1; // unable to connect to client
+            }
         } else {
-            // disconnectProcedure
-            // remove client from list like it disconnected willingly
-            // return error code to client
-            return -1;
+            return -3; // signature verification failed
         }
     }
 
