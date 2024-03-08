@@ -2,6 +2,7 @@ package server;
 
 import client.IRCClientInterface;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.Naming;
 import java.rmi.NotBoundException;
@@ -28,7 +29,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     public IRCServer(String serverName) throws RemoteException {
         super();
         this.name = serverName;
-        scheduler.schedule(new DisconnectDetector(this), 20, TimeUnit.SECONDS);
+        scheduler.scheduleAtFixedRate(new DisconnectDetector(this), 20, 20, TimeUnit.SECONDS);
     }
 
     @Override
@@ -76,9 +77,15 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     public void sendMessage(String username, String channel, String message, byte[] signedFingerprint) throws RemoteException {
         System.out.println("[INFO] " + username + " sent message \"" + message + "\"" + " to channel \"" + channel + "\".");
         if (signatureVerifier.verifySignature(username, message.getBytes(), signedFingerprint)) {
-            for (Channel c : channels)
-                if (c.getName().equals(channel))
-                    c.sendMessage(username, message);
+            if (channel.startsWith("private_")) {
+                for (Channel c : privateChats)
+                    if (c.getName().equals(channel))
+                        c.sendMessage(username, message);
+            } else {
+                for (Channel c : channels)
+                    if (c.getName().equals(channel))
+                        c.sendMessage(username, message);
+            }
         } else {
             System.err.println("SIGNATURE VERIFICATION FAILED DURING SENDMESSAGE");
         }
@@ -133,36 +140,55 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         return -1;
     }
     public int leaveChannel(String username, String channelName, byte[] signedFingerprint) {
+        System.out.println("[INFO] Received leaveChannel(" + channelName + ") request from " + username + ".");
         if (signatureVerifier.verifySignature(username, (username+channelName).getBytes(), signedFingerprint)) {
-            for (Channel c : channels)
-                if (c.getName().equals(channelName)) {
-                    IRCClientInterface client = c.removeClient(username);
-                    clientsInLobby.put(username, client);
-                    return 0;
-                }
+            if (channelName.startsWith("private_")) {
+                for (Channel c : privateChats)
+                    if (c.getName().equals(channelName)) {
+                        HashMap<String, IRCClientInterface> clientsInChannel = new HashMap<>(c.getClients());
+                        for (String u : clientsInChannel.keySet()) {
+                            try {
+                                clientsInChannel.get(u).notifyLeave();
+                            } catch (RemoteException ignored) {}
+                            c.removeClient(u);
+                        }
+                        clientsInLobby.putAll(clientsInChannel);
+                        return 0;
+                    }
+            } else {
+                for (Channel c : channels)
+                    if (c.getName().equals(channelName)) {
+                        IRCClientInterface client = c.removeClient(username);
+                        clientsInLobby.put(username, client);
+                        return 0;
+                    }
+            }
         }
         return -1;
     }
 
     @Override
     public int joinPrivateChat(String username, String targetUsername, byte[] signedFingerprint) {
+        System.out.println("[INFO] Received joinPrivateChat(" + targetUsername + ") request from " + username + ".");
         // Verify signature
         if (signatureVerifier.verifySignature(username, (username + targetUsername).getBytes(), signedFingerprint)) {
             if (!clientsInLobby.containsKey(targetUsername))
                 return -1; // unable to connect to client
             try {
-                if (!clientsInLobby.get(targetUsername).requestPrivateChat(username)) {
+                if (clientsInLobby.get(targetUsername).requestPrivateChat(username)) {
                     // success
-                    Channel c = new Channel("Private Chat");
+                    Channel c = new Channel("private_" + username);
                     c.addClient(username, clientsInLobby.get(username));
                     c.addClient(targetUsername, clientsInLobby.get(targetUsername));
                     clientsInLobby.remove(username);
                     clientsInLobby.remove(targetUsername);
+                    privateChats.add(c);
                     return 0; // success
                 } else {
                     return -2; // client refused private chat
                 }
-            } catch (RemoteException e) {
+            } catch (IOException e) {
+                removeClient(targetUsername);
                 return -1; // unable to connect to client
             }
         } else {
@@ -183,11 +209,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         return 0;
     }
 
-
-    public HashMap<String, IRCClientInterface> getClientsInLobby() {
-        HashMap<String, IRCClientInterface> clientList = new HashMap<>(clientsInLobby);
-//        for (Channel c : channels)
-//            clientList.putAll(c.getClients());
-        return clientList;
+    public ConcurrentHashMap<String, IRCClientInterface> getClientsInLobby() {
+        return clientsInLobby;
     }
 }

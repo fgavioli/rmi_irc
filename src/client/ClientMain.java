@@ -2,15 +2,14 @@ package client;
 
 import server.IRCServerInterface;
 
+import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.AlreadyBoundException;
-import java.rmi.Naming;
 import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
-import java.util.ArrayList;
 import java.util.Scanner;
 
 public class ClientMain {
@@ -34,6 +33,8 @@ public class ClientMain {
             System.err.println("Server " + serverName + "does not exist.");
         } catch (AlreadyBoundException e) {
             System.err.println("Username " + username + " is already registered.");
+        } catch (IOException e) {
+            System.err.println("Error while reading stdin.");
         }
     }
 
