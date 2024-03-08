@@ -48,32 +48,8 @@ public class DisconnectDetector implements Runnable {
         checkClients(clients);
         clients.clear();
 
-        // Check private chats
+        // TODO: Check private chats
 //        ArrayList<Channel> privateChats = new ArrayList<>(server.getPrivateChats());
 
-
-// CHECK PRIVATE CHATS AND DESTROY IF ONE OF THE CLIENTS IS OFFLINE
-//        System.out.print("Lobby: ");
-//        for (String user : server.getClientsInLobby().keySet()) {
-//            try { // call getUsername to check if the client is still alive
-//                if (!server.getClientsInLobby().get(user).getUsername().equals(user))
-//                    throw new RemoteException();
-//            } catch (RemoteException e) {
-//                // client disconnected
-//                server.removeClient(user);
-//            }
-//            System.out.print(user + " ");
-//        }
-//        for (Channel ch : server.getChannels()) {
-////            System.out.print("\nChannel " + c + ": ");
-//            for (String c : ch.getClients().keySet()) {
-//                try { // call getUsername to check if the client is still alive
-//                    if (ch.getClients().get(c).getUsername().equals(c))
-//                }
-//            } catch (RemoteException e) {
-//                // client disconnected
-//                server.removeClient(user);
-//            }
-//        }
     }
 }
