@@ -92,11 +92,36 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     }
 
     public void removeClient(String username)  {
+
+        // remove client in lobby
+        signatureVerifier.removeSignature(username);
+        clientsInLobby.remove(username);
+
         // Remove client from channels
         for (Channel c : channels)
             c.removeClient(username);
-        signatureVerifier.removeSignature(username);
-        clientsInLobby.remove(username);
+
+        // Remove client from private chats
+        Channel toRemove = null;
+        for (Channel c : privateChats)
+            if (c.getClients().containsKey(username)) {
+                for (String u : c.getClients().keySet())
+                    if (u.equals(username)) {
+                        try {
+                            IRCClientInterface iface = c.getClients().get(u);
+                            iface.notifyLeave();
+                            clientsInLobby.put(u, iface);
+                        } catch (RemoteException e) {
+                            c.removeClient(u);
+                        }
+                    } else {
+                        c.removeClient(username);
+                    }
+                toRemove = c;
+                break;
+            }
+        if (toRemove != null)
+            privateChats.remove(toRemove);
     }
 
     public String getGreeting() {
@@ -114,15 +139,19 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     }
 
     @Override
-    public ArrayList<String> getChannelNames() throws RemoteException {
+    public ArrayList<String> getChannelDescriptions() throws RemoteException {
         ArrayList<String> ret = new ArrayList<>();
         for (Channel c : channels)
-            ret.add(c.getName());
+            ret.add(c.getName() + "\t" + c.getClients().size() + " users");
         return ret;
     }
 
     public Vector<Channel> getChannels() {
         return channels;
+    }
+
+    public Vector<Channel> getPrivateChats() {
+        return privateChats;
     }
 
     @Override
@@ -143,6 +172,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         System.out.println("[INFO] Received leaveChannel(" + channelName + ") request from " + username + ".");
         if (signatureVerifier.verifySignature(username, (username+channelName).getBytes(), signedFingerprint)) {
             if (channelName.startsWith("private_")) {
+                Channel toRemove = null;
                 for (Channel c : privateChats)
                     if (c.getName().equals(channelName)) {
                         HashMap<String, IRCClientInterface> clientsInChannel = new HashMap<>(c.getClients());
@@ -153,6 +183,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
                             c.removeClient(u);
                         }
                         clientsInLobby.putAll(clientsInChannel);
+                        privateChats.remove(c);
                         return 0;
                     }
             } else {
@@ -172,6 +203,8 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         System.out.println("[INFO] Received joinPrivateChat(" + targetUsername + ") request from " + username + ".");
         // Verify signature
         if (signatureVerifier.verifySignature(username, (username + targetUsername).getBytes(), signedFingerprint)) {
+            if (username.equals(targetUsername))
+                return -1;
             if (!clientsInLobby.containsKey(targetUsername))
                 return -1; // unable to connect to client
             try {
