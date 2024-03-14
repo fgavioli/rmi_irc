@@ -44,12 +44,6 @@ public class SignatureVerifier {
         ByteBuffer bb = ByteBuffer.wrap(byteMessage);
         bb.put(message);
         bb.put(nonce);
-        try {
-            clientKeys.get(username).update(bb.array());
-            return clientKeys.get(username).verify(signedFingerprint);
-        } catch (SignatureException e) {
-            e.printStackTrace();
-            return false;
-        }
+        return verifySignatureWithoutNonce(username, bb.array(), signedFingerprint);
     }
 }

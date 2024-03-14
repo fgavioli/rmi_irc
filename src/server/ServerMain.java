@@ -6,7 +6,6 @@ import java.rmi.Naming;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.security.NoSuchAlgorithmException;
 
 public class ServerMain {
     public static void main(String[] args) {
@@ -24,8 +23,6 @@ public class ServerMain {
                     System.err.println("Couldn't add channel #" + name + ".");
             Naming.rebind(serverName, server);
             System.out.println("[INFO] Server" + serverName + " bound.");
-            // Spin until terminated
-            // server.IRCServer.start()
         } catch (RemoteException | MalformedURLException e) {
             e.printStackTrace();
         }
