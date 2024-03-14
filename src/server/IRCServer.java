@@ -22,13 +22,13 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     private Vector<Channel> channels = new Vector<>();
     private ConcurrentHashMap<String, IRCClientInterface> clientsInLobby = new ConcurrentHashMap<>();
     private SignatureVerifier signatureVerifier = new SignatureVerifier();
-    private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private Vector<Channel> privateChats = new Vector<>();
 
 
     public IRCServer(String serverName) throws RemoteException {
         super();
         this.name = serverName;
+        ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
         scheduler.scheduleAtFixedRate(new DisconnectDetector(this), 20, 20, TimeUnit.SECONDS);
     }
 
@@ -66,11 +66,10 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         }
     }
 
-    public int disconnect(String username, byte[] signedFingerprint) throws RemoteException {
+    public void disconnect(String username, byte[] signedFingerprint) throws RemoteException {
         if (signatureVerifier.verifySignature(username, username.getBytes(), signedFingerprint)) {
             removeClient(username);
         }
-        return 0;
     }
 
     @Override
@@ -168,11 +167,10 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         }
         return -1;
     }
-    public int leaveChannel(String username, String channelName, byte[] signedFingerprint) {
+    public void leaveChannel(String username, String channelName, byte[] signedFingerprint) {
         System.out.println("[INFO] Received leaveChannel(" + channelName + ") request from " + username + ".");
         if (signatureVerifier.verifySignature(username, (username+channelName).getBytes(), signedFingerprint)) {
             if (channelName.startsWith("private_")) {
-                Channel toRemove = null;
                 for (Channel c : privateChats)
                     if (c.getName().equals(channelName)) {
                         HashMap<String, IRCClientInterface> clientsInChannel = new HashMap<>(c.getClients());
@@ -184,18 +182,16 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
                         }
                         clientsInLobby.putAll(clientsInChannel);
                         privateChats.remove(c);
-                        return 0;
+                        return;
                     }
             } else {
                 for (Channel c : channels)
                     if (c.getName().equals(channelName)) {
                         IRCClientInterface client = c.removeClient(username);
                         clientsInLobby.put(username, client);
-                        return 0;
                     }
             }
         }
-        return -1;
     }
 
     @Override
