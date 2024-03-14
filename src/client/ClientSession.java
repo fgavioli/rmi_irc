@@ -45,7 +45,6 @@ public class ClientSession {
             lobbyMenuLoop();
     }
 
-
     private void printMenu() {
         System.out.println("\nChoose a service:");
         System.out.println("\t1. List channels");
@@ -82,7 +81,7 @@ public class ClientSession {
         }
         switch (option) {
             case "1":
-                ArrayList<String> channels = server.getChannelNames();
+                ArrayList<String> channels = server.getChannelDescriptions();
                 System.out.println("Available channels:");
                 for (String c : channels)
                     System.out.println("\t#" + c);
@@ -101,6 +100,7 @@ public class ClientSession {
                 if (!channelName.equals("q")) {
                     byte[] signedFingerprint = sm.signWithNonce((client.getUsername() + channelName).getBytes());
                     int ret = server.joinChannel(client.getUsername(), channelName, signedFingerprint);
+                    client.resetNotifyLeave();
                     if (ret == 0)
                         chatLoop(channelName);
                     else {
@@ -118,6 +118,7 @@ public class ClientSession {
                 if (!targetUsername.equals("q")) {
                     byte[] signedFingerprint = sm.signWithNonce((client.getUsername() + targetUsername).getBytes());
                     int ret = server.joinPrivateChat(client.getUsername(), targetUsername, signedFingerprint);
+                    client.resetNotifyLeave();
                     switch (ret) {
                         case 0:
                             chatLoop("private_" + client.getUsername());
@@ -144,32 +145,24 @@ public class ClientSession {
         System.out.println("Joined channel " + channel + ". Write a message, press enter to send. Send \":q\" to quit.");
         // read stdin
         String msg = "";
-        while (!stdin.ready()) {
-            try {
-                Thread.sleep(100);
-            } catch (InterruptedException ignored) {}
-        }
-        if (client.recievedNotifyLeave()) {
-            client.resetNotifyLeave();
-            System.out.println("Channel closed. Leaving.");
-            server.leaveChannel(client.getUsername(), channel, sm.signWithNonce((client.getUsername() + channel).getBytes()));
-            return;
-        }
-        msg = stdin.readLine();
         while (!msg.equals(":q")) {
-            server.sendMessage(client.getUsername(), channel, msg, sm.signWithNonce(msg.getBytes()));
+            if (!msg.isEmpty())
+                server.sendMessage(client.getUsername(), channel, msg, sm.signWithNonce(msg.getBytes()));
             while (!stdin.ready()) {
                 try {
                     Thread.sleep(100);
                     if (client.recievedNotifyLeave()) {
                         client.resetNotifyLeave();
-                        server.leaveChannel(client.getUsername(), channel, sm.signWithNonce((client.getUsername() + channel).getBytes()));
+                        System.out.println("Channel closed. Leaving.");
+//                        server.leaveChannel(client.getUsername(), channel, sm.signWithNonce((client.getUsername() + channel).getBytes()));
                         return;
                     }
                 } catch (InterruptedException ignored) {}
             }
             msg = stdin.readLine();
         }
+        client.resetNotifyLeave();
+        server.leaveChannel(client.getUsername(), channel, sm.signWithNonce((client.getUsername() + channel).getBytes()));
     }
 
     public void lockStdin() {
