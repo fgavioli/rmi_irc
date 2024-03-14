@@ -48,8 +48,11 @@ public class DisconnectDetector implements Runnable {
         checkClients(clients);
         clients.clear();
 
-        // TODO: Check private chats
-//        ArrayList<Channel> privateChats = new ArrayList<>(server.getPrivateChats());
-
+        // Check disconnected users in private chats
+        ArrayList<Channel> privateChats = new ArrayList<>(server.getPrivateChats());
+        for (Channel c : privateChats)
+            clients.putAll(c.getClients());
+        checkClients(clients);
+        clients.clear();
     }
 }
