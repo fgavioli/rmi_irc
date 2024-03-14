@@ -11,8 +11,8 @@ public interface IRCServerInterface extends Remote {
     ArrayList<String> getUsers() throws RemoteException;
     ArrayList<String> getChannelDescriptions() throws RemoteException;
     int joinChannel(String username, String channelName, byte[] signedFingerprint) throws RemoteException;
-    int leaveChannel(String username, String channelName, byte[] signedFingerprint) throws RemoteException;
+    void leaveChannel(String username, String channelName, byte[] signedFingerprint) throws RemoteException;
     int joinPrivateChat(String username, String targetUsername, byte[] signedFingerprint) throws RemoteException;
-    int disconnect(String username, byte[] signedFingerprint) throws RemoteException;
+    void disconnect(String username, byte[] signedFingerprint) throws RemoteException;
     void sendMessage(String username, String channel, String message, byte[] signedFingerprint) throws RemoteException;
 }
