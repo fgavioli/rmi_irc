@@ -1,15 +1,10 @@
 package client;
 
-import server.IRCServerInterface;
-
-import java.io.IOException;
 import java.net.MalformedURLException;
 import java.rmi.AlreadyBoundException;
-import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
-import java.security.SignatureException;
 import java.util.Scanner;
 
 public class ClientMain {
@@ -21,22 +16,30 @@ public class ClientMain {
         String serverName = stdin.nextLine();
         System.out.print("Username: ");
         String username = stdin.nextLine();
+        // Start client session
+        ClientSession cs = null;
         try {
-            // Start client session
-            ClientSession cs = new ClientSession(username);
-            cs.start(serverName);
-            // TODO: move try/catch clauses into ClientSession
-        } catch (RemoteException | MalformedURLException | NoSuchAlgorithmException | InvalidKeyException |
-                 SignatureException e) {
-            e.printStackTrace();
-        } catch (NotBoundException e) {
-            System.err.println("Server " + serverName + "does not exist.");
+            cs = new ClientSession(username);
         } catch (AlreadyBoundException e) {
             System.err.println("Username " + username + " is already registered.");
-        } catch (IOException e) {
-            System.err.println("Error while reading stdin.");
+        } catch (NoSuchAlgorithmException | InvalidKeyException e) {
+            System.err.print("Unsupported ciphers.");
+        } catch (MalformedURLException e) {
+            System.err.println("Username " + username + " is invalid.");
+        } catch (RemoteException e) {
+            System.err.println("Server " + serverName + " does not exist.");
+        }
+        if (cs != null) {
+            int ret = -1;
+            try {
+                ret = cs.start(serverName);
+            } catch (RemoteException e) {
+                System.err.println("Connection lost.");
+            }
+            System.exit(ret);
+        } else {
+            System.exit(-1);
         }
     }
-
 }
 
