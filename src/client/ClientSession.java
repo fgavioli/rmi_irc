@@ -23,6 +23,10 @@ public class ClientSession {
     private ReentrantLock stdinLock = new ReentrantLock();
     private BufferedReader stdin = new BufferedReader(new InputStreamReader(System.in));
 
+    /**
+     * ClientSession constructor
+     * @param username the username for the session
+     */
     public ClientSession(String username) throws NoSuchAlgorithmException, InvalidKeyException, MalformedURLException, AlreadyBoundException, RemoteException {
         // Bind local client object
         client = new IRCClient(username, this);
@@ -30,6 +34,12 @@ public class ClientSession {
         sm = new SignatureManager();
     }
 
+    /**
+     * Starts the client session, blocking.
+     * @param serverName the server to start the client session with
+     * @return 0 if the session was closed gracefully, -1 in case a forced disconnection occurred
+     * @throws RemoteException when the server becomes unreachable
+     */
     public int start(String serverName) throws RemoteException {
         // Lookup remote server object
         try {
@@ -67,6 +77,9 @@ public class ClientSession {
         return 0;
     }
 
+    /**
+     * Prints the main lobby menu
+     */
     private void printMenu() {
         System.out.println("\nChoose a service:");
         System.out.println("\t1. List channels");
@@ -76,11 +89,14 @@ public class ClientSession {
         System.out.println("\t5. Quit");
     }
 
+    /**
+     * Main loop for the session.
+     */
     private int lobbyMenuLoop() throws IOException, SignatureException, NoSuchAlgorithmException, InvalidKeyException {
         printMenu();
         String option = null;
         while (option == null) {
-            // wait until stdin has something or we join a private chat
+            // wait until stdin has something, or we join a private chat
             while (!stdin.ready()) {
                 try {
                     Thread.sleep(100);
@@ -164,6 +180,10 @@ public class ClientSession {
         return 1;
     }
 
+    /**
+     * Main loop to invoke when entering any chat
+     * @param channel the channel on which we are writing
+     */
     private void chatLoop(String channel) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException, IOException {
         System.out.println("Joined channel " + channel + ". Write a message, press enter to send. Send \":q\" to quit.");
         // read stdin
@@ -188,14 +208,23 @@ public class ClientSession {
         server.leaveChannel(client.getUsername(), channel, sm.signWithNonce((client.getUsername() + channel).getBytes()));
     }
 
+    /**
+     * Locks the standard input, blocking call.
+     */
     public void lockStdin() {
         stdinLock.lock();
     }
 
+    /**
+     * Unlocks the standard input, blocking call.
+     */
     public void unlockStdin() {
         stdinLock.unlock();
     }
 
+    /**
+     * Returns the BufferedReader associated to standard input.
+     */
     public BufferedReader getScanner() {
         return this.stdin;
     }

@@ -14,6 +14,7 @@ public class ServerMain {
         try {
             Registry r = LocateRegistry.createRegistry(1099);
             System.setProperty("java.rmi.server.hostname","127.0.0.1");
+            System.setProperty("java.rmi.server.hostname","127.0.0.1");
             String serverName = "UNIMORE0";
             IRCServer server = new IRCServer(serverName);
             // Add some channels

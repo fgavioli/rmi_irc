@@ -9,10 +9,18 @@ import java.util.concurrent.ConcurrentHashMap;
 public class DisconnectDetector implements Runnable {
     private IRCServer server;
 
+    /**
+     * DisconnectDetector constructor
+     * @param server the server on which the detector operates
+     */
     public DisconnectDetector(IRCServer server) {
         this.server = server;
     }
 
+    /**
+     * Checks a list of clients and removes the disconnected ones
+     * @param clients the list of clients to be checked
+     */
     private void checkClients(ConcurrentHashMap<String, IRCClientInterface> clients) {
         ArrayList<String> clientsToCheck = new ArrayList<>(clients.keySet());
         while (!clientsToCheck.isEmpty()) {
@@ -33,6 +41,9 @@ public class DisconnectDetector implements Runnable {
         }
     }
 
+    /**
+     * Thread code
+     */
     @Override
     public void run() {
 

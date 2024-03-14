@@ -25,6 +25,10 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     private Vector<Channel> privateChats = new Vector<>();
 
 
+    /**
+     * IRCServer constructor
+     * @param serverName the name of the server
+     */
     public IRCServer(String serverName) throws RemoteException {
         super();
         this.name = serverName;
@@ -32,6 +36,13 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         scheduler.scheduleAtFixedRate(new DisconnectDetector(this), 20, 20, TimeUnit.SECONDS);
     }
 
+    /**
+     * Procedure to connect to the server
+     * @param username the username of the client
+     * @param publicKey the public key of the client
+     * @param signedFingerprint the signed username
+     * @return 0 if the connection is successful, -1 otherwise
+     */
     @Override
     public int connect(String username, PublicKey publicKey, byte[] signedFingerprint) throws RemoteException {
         System.out.println("[INFO] Received connection request from username: " + username + ".");
@@ -66,12 +77,24 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         }
     }
 
+    /**
+     * Disconnects a client from the server
+     * @param username the client to disconnect
+     * @param signedFingerprint the signed username
+     */
     public void disconnect(String username, byte[] signedFingerprint) throws RemoteException {
         if (signatureVerifier.verifySignature(username, username.getBytes(), signedFingerprint)) {
             removeClient(username);
         }
     }
 
+    /**
+     * Sends a message to a channel
+     * @param username the username of the sender
+     * @param channel the channel to send the message to
+     * @param message the message to be sent
+     * @param signedFingerprint the signature of the message
+     */
     @Override
     public void sendMessage(String username, String channel, String message, byte[] signedFingerprint) throws RemoteException {
         System.out.println("[INFO] " + username + " sent message \"" + message + "\"" + " to channel \"" + channel + "\".");
@@ -90,6 +113,10 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         }
     }
 
+    /**
+     * Removes a client from the server
+     * @param username the username of the client to be removed
+     */
     public void removeClient(String username)  {
 
         // remove client in lobby
@@ -123,6 +150,10 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
             privateChats.remove(toRemove);
     }
 
+    /**
+     * Returns a greeting to the server
+     * @return the greeting
+     */
     public String getGreeting() {
         StringBuilder greeting = new StringBuilder();
         greeting.append("Welcome to the ").append(this.name).append(" IRC Server!\n");
@@ -132,11 +163,19 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         return greeting.toString();
     }
 
+    /**
+     * Returns the users in lobby
+     * @return a list containing the usernames in lobby
+     */
     @Override
     public ArrayList<String> getUsers() throws RemoteException {
         return new ArrayList<>(clientsInLobby.keySet());
     }
 
+    /**
+     * Returns the channel names list
+     * @return the channel names list
+     */
     @Override
     public ArrayList<String> getChannelDescriptions() throws RemoteException {
         ArrayList<String> ret = new ArrayList<>();
@@ -145,14 +184,29 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         return ret;
     }
 
+    /**
+     * Returns the channels
+     * @return the channels
+     */
     public Vector<Channel> getChannels() {
         return channels;
     }
 
+    /**
+     * Returns the private chats
+     * @return the private chats
+     */
     public Vector<Channel> getPrivateChats() {
         return privateChats;
     }
 
+    /**
+     * Joins a channel
+     * @param username the client that wants to join the channel
+     * @param channelName the channel name
+     * @param signedFingerprint the signed usename+channel string
+     * @return 0 if the join was successful, -1 otherwise
+     */
     @Override
     public int joinChannel(String username, String channelName, byte[] signedFingerprint) {
         System.out.println("[INFO] Received JoinChannel(" + channelName + ") request from " + username + ".");
@@ -167,6 +221,13 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         }
         return -1;
     }
+
+    /**
+     * Leaves the channel
+     * @param username the client that wants to leave the channel
+     * @param channelName the name of the channel to leave
+     * @param signedFingerprint the signed username+channel string
+     */
     public void leaveChannel(String username, String channelName, byte[] signedFingerprint) {
         System.out.println("[INFO] Received leaveChannel(" + channelName + ") request from " + username + ".");
         if (signatureVerifier.verifySignature(username, (username+channelName).getBytes(), signedFingerprint)) {
@@ -194,6 +255,13 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         }
     }
 
+    /**
+     * Join a private chat with another client
+     * @param username the client that wants to join the chat
+     * @param targetUsername the target client of the private chat
+     * @param signedFingerprint the signed  string
+     * @return 0 in case of success, -1 if the client was unreachable, -2 if the client refused the private chat, -3 if the signature verification failed
+     */
     @Override
     public int joinPrivateChat(String username, String targetUsername, byte[] signedFingerprint) {
         System.out.println("[INFO] Received joinPrivateChat(" + targetUsername + ") request from " + username + ".");
@@ -225,6 +293,11 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         }
     }
 
+    /**
+     * Add a channel to the server
+     * @param channelName the name of the channel to add
+     * @return 0 in case of success, -1 if the channel already exists
+     */
     public int addChannel(String channelName) {
         if (channelName.isEmpty()) {
             return -1;
@@ -238,6 +311,10 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
         return 0;
     }
 
+    /**
+     * Returns the list of the clients in lobby
+     * @return the list of the clients in lobby
+     */
     public ConcurrentHashMap<String, IRCClientInterface> getClientsInLobby() {
         return clientsInLobby;
     }
