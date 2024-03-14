@@ -1,20 +1,15 @@
 package client;
 
 import java.io.IOException;
-import java.io.Serializable;
 import java.rmi.RemoteException;
 import java.rmi.server.UnicastRemoteObject;
-import java.security.*;
-import java.util.Collection;
-import java.util.Locale;
-import java.util.Scanner;
 
 public class IRCClient extends UnicastRemoteObject implements IRCClientInterface {
-    private final String username;
+    private String username;
     private ClientSession session;
     private boolean requestedPrivateChat = false;
     private String requestedPrivateChatUsername = "";
-    private boolean leaveChannel = false;
+    private boolean notifiedLeaveChannel = false;
 
     public IRCClient(String username, ClientSession session) throws RemoteException {
         super();
@@ -53,7 +48,7 @@ public class IRCClient extends UnicastRemoteObject implements IRCClientInterface
     @Override
     public void notifyLeave() throws RemoteException {
         System.out.println("NotifyLeave");
-        leaveChannel = true;
+        notifiedLeaveChannel = true;
     }
 
     @Override
@@ -71,10 +66,10 @@ public class IRCClient extends UnicastRemoteObject implements IRCClientInterface
     }
 
     public boolean recievedNotifyLeave() {
-        return leaveChannel;
+        return notifiedLeaveChannel;
     }
 
     public void resetNotifyLeave() {
-        leaveChannel = false;
+        notifiedLeaveChannel = false;
     }
 }
