@@ -14,7 +14,6 @@ import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SignatureException;
 import java.util.ArrayList;
-import java.util.Scanner;
 import java.util.concurrent.locks.ReentrantLock;
 
 public class ClientSession {
@@ -31,18 +30,41 @@ public class ClientSession {
         sm = new SignatureManager();
     }
 
-    public void start(String serverName) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException, IOException, NotBoundException {
+    public int start(String serverName) throws RemoteException {
         // Lookup remote server object
-        server = (IRCServerInterface) Naming.lookup(serverName);
-        int seed = server.connect(client.getUsername(), sm.getPublicKey(), sm.sign(client.getUsername().getBytes()));
+        try {
+            server = (IRCServerInterface) Naming.lookup(serverName);
+        } catch (MalformedURLException | NotBoundException | RemoteException e) {
+            System.err.println("Unable to connect to server " + serverName + ".");
+            return -1;
+        }
+        int seed = 0;
+        try {
+            seed = server.connect(client.getUsername(), sm.getPublicKey(), sm.sign(client.getUsername().getBytes()));
+        } catch (SignatureException | NoSuchAlgorithmException | InvalidKeyException e) {
+            System.out.println("Unsupported ciphers.");
+            return -1;
+        }
         if (seed == 0) {
-            System.err.println("Connection error.");
-            return;
+            System.err.println("Seed initialization error.");
+            return -1;
         }
         sm.setSeed(seed);
         System.out.println(server.getGreeting());
-        while (true)
-            lobbyMenuLoop();
+        try {
+            while (lobbyMenuLoop() == 1)
+                ; // continue looping
+        } catch (RemoteException e) {
+            System.err.println("Server connection lost");
+            return -1;
+        } catch (IOException e) {
+            System.err.println("Error while reading standard input.");
+            return -1;
+        } catch (SignatureException | NoSuchAlgorithmException | InvalidKeyException e) {
+            System.out.println("Unsupported ciphers.");
+            return -1;
+        }
+        return 0;
     }
 
     private void printMenu() {
@@ -51,9 +73,10 @@ public class ClientSession {
         System.out.println("\t2. List users");
         System.out.println("\t3. Join channel");
         System.out.println("\t4. Open private chat");
+        System.out.println("\t5. Quit");
     }
 
-    private void lobbyMenuLoop() throws IOException, SignatureException, NoSuchAlgorithmException, InvalidKeyException {
+    private int lobbyMenuLoop() throws IOException, SignatureException, NoSuchAlgorithmException, InvalidKeyException {
         printMenu();
         String option = null;
         while (option == null) {
@@ -106,9 +129,6 @@ public class ClientSession {
                     else {
                         System.err.println("Unable to join channel " + channelName + ".");
                     }
-                } else {
-                    server.disconnect(client.getUsername(), sm.sign(client.getUsername().getBytes()));
-                    System.exit(0);
                 }
                 break;
             case "4":
@@ -135,10 +155,13 @@ public class ClientSession {
                     }
                 }
                 break;
+            case "5":
+                server.disconnect(client.getUsername(), sm.sign(client.getUsername().getBytes()));
+                return 0;
             default:
                 System.out.println("Unrecognized option, please retry.");
         }
-
+        return 1;
     }
 
     private void chatLoop(String channel) throws SignatureException, NoSuchAlgorithmException, InvalidKeyException, IOException {
