@@ -20,12 +20,8 @@ public class ClientMain {
         ClientSession cs = null;
         try {
             cs = new ClientSession(username);
-        } catch (AlreadyBoundException e) {
-            System.err.println("Username " + username + " is already registered.");
         } catch (NoSuchAlgorithmException | InvalidKeyException e) {
             System.err.print("Unsupported ciphers.");
-        } catch (MalformedURLException e) {
-            System.err.println("Username " + username + " is invalid.");
         } catch (RemoteException e) {
             System.err.println("Server " + serverName + " does not exist.");
         }
@@ -33,6 +29,10 @@ public class ClientMain {
             int ret = -1;
             try {
                 ret = cs.start(serverName);
+            } catch (MalformedURLException e) {
+                System.err.println("Username " + username + " is invalid.");
+            } catch (AlreadyBoundException e) {
+	        System.err.println("Username " + username + " is already registered.");
             } catch (RemoteException e) {
                 System.err.println("Connection lost.");
             }

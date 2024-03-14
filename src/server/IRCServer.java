@@ -180,7 +180,7 @@ public class IRCServer extends UnicastRemoteObject implements IRCServerInterface
     public ArrayList<String> getChannelDescriptions() throws RemoteException {
         ArrayList<String> ret = new ArrayList<>();
         for (Channel c : channels)
-            ret.add(c.getName() + "\t" + c.getClients().size() + " users");
+            ret.add(c.getName() + " \t" + c.getClients().size() + " users");
         return ret;
     }
 

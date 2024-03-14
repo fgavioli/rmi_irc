@@ -27,10 +27,9 @@ public class ClientSession {
      * ClientSession constructor
      * @param username the username for the session
      */
-    public ClientSession(String username) throws NoSuchAlgorithmException, InvalidKeyException, MalformedURLException, AlreadyBoundException, RemoteException {
-        // Bind local client object
+    public ClientSession(String username) throws NoSuchAlgorithmException, InvalidKeyException, RemoteException {
+        // Create client and signature manager
         client = new IRCClient(username, this);
-        Naming.bind(username, client);
         sm = new SignatureManager();
     }
 
@@ -40,7 +39,7 @@ public class ClientSession {
      * @return 0 if the session was closed gracefully, -1 in case a forced disconnection occurred
      * @throws RemoteException when the server becomes unreachable
      */
-    public int start(String serverName) throws RemoteException {
+    public int start(String serverName) throws RemoteException, AlreadyBoundException, MalformedURLException {
         // Lookup remote server object
         try {
             server = (IRCServerInterface) Naming.lookup(serverName);
@@ -48,6 +47,11 @@ public class ClientSession {
             System.err.println("Unable to connect to server " + serverName + ".");
             return -1;
         }
+
+	// bind local client object
+        Naming.bind(client.getUsername(), client);
+
+	// connect to server
         int seed = 0;
         try {
             seed = server.connect(client.getUsername(), sm.getPublicKey(), sm.sign(client.getUsername().getBytes()));

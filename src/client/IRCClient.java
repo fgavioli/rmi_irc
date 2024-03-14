@@ -69,7 +69,6 @@ public class IRCClient extends UnicastRemoteObject implements IRCClientInterface
      */
     @Override
     public void notifyLeave() throws RemoteException {
-        System.out.println("NotifyLeave");
         notifiedLeaveChannel = true;
     }
 
