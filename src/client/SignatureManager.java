@@ -2,8 +2,6 @@ package client;
 
 import java.nio.ByteBuffer;
 import java.security.*;
-import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Random;
 
 public class SignatureManager {
